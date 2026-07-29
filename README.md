@@ -1,24 +1,3 @@
----
-title: "Getting Started with {poscosea}"
-author: "Ph.D. Ohkubo Yusaku "
-date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Getting Started with {poscosea}}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
----
-
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
-
-```{r setup}
-library(poscosea)
-```
 
 ## Overview
 
