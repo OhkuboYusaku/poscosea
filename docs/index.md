@@ -1,0 +1,77 @@
+# poscosea
+
+`poscosea` provides infinitesimal jackknife (IJK) approximations for
+sensitivity analysis of posterior summaries. Given aligned posterior
+draws of a quantity of interest and pointwise log-likelihood values, it
+computes observation-level influence values for bootstrap and
+leave-k-out analyses.
+
+For binomial N-mixture models, the package also provides site- and
+visit-level likelihood components and a two-stage bootstrap
+approximation. See the [N-mixture
+vignette](https://ohkuboyusaku.github.io/poscosea/articles/nmix-twostage.md)
+for a worked example.
+
+## Installation
+
+Install the development version from GitHub:
+
+\
+[`install.packages`](https://rdrr.io/r/utils/install.packages.html)`(``"remotes"``)`\
+`remotes``::`[`install_github`](https://rdrr.io/pkg/remotes/man/install_github.html)`(``"OhkuboYusaku/poscosea"``)`
+
+## Quick start
+
+This example uses the model `y_i | theta ~ Normal(theta, 1)` with a flat
+prior on `theta`. It draws from the resulting analytic posterior and
+computes the pointwise log-likelihood at each corresponding draw.
+
+\
+[`set.seed`](https://rdrr.io/r/base/Random.html)`(``123``)`\
+`n_obs`` ``<-`` ``6`\
+`y`` ``<-`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_obs``, sd ``=`` ``1``)`\
+`signal_idx`` ``<-`` `[`c`](https://rdrr.io/r/base/c.html)`(``2``, ``5``)`\
+`y``[``signal_idx``]`` ``<-`` ``y``[``signal_idx``]`` ``+`` ``3`\
+\
+`n_draws`` ``<-`` ``2000`\
+`theta`` ``<-`` `[`rnorm`](https://rdrr.io/r/stats/Normal.html)`(``n_draws``, mean ``=`` `[`mean`](https://rdrr.io/r/base/mean.html)`(``y``)``, sd ``=`` ``1`` ``/`` `[`sqrt`](https://rdrr.io/r/base/MathFun.html)`(``n_obs``)``)`\
+`loglik`` ``<-`` `[`matrix`](https://rdrr.io/r/base/matrix.html)`(``0``, ``n_draws``, ``n_obs``)`\
+`for`` ``(``i`` ``in`` `[`seq_len`](https://rdrr.io/r/base/seq.html)`(``n_obs``)``)`` ``{`\
+`  ``loglik``[``, ``i``]`` ``<-`` `[`dnorm`](https://rdrr.io/r/stats/Normal.html)`(``y``[``i``]``, mean ``=`` ``theta``, sd ``=`` ``1``, log ``=`` ``TRUE``)`\
+`}`\
+\
+`fit`` ``<-`` `[`ijk`](https://ohkuboyusaku.github.io/poscosea/reference/ijk.md)`(``theta``, ``loglik``)`\
+`fit``$``estimate`\
+[`head`](https://rdrr.io/r/utils/head.html)`(``fit``$``influence``)`
+
+Generate bootstrap replicates and approximate leave-one-out estimates:
+
+\
+`boot`` ``<-`` `[`ijk_bootstrap`](https://ohkuboyusaku.github.io/poscosea/reference/ijk_bootstrap.md)`(``fit``$``estimate``, ``fit``$``influence``, B ``=`` ``500``)`\
+[`summary`](https://rdrr.io/r/base/summary.html)`(``boot``)`\
+\
+`loo`` ``<-`` `[`ijk_lko`](https://ohkuboyusaku.github.io/poscosea/reference/ijk_lko.md)`(``fit``$``estimate``, ``fit``$``influence``, k ``=`` ``1``)`\
+[`plot`](https://rdrr.io/r/graphics/plot.default.html)`(``loo``)`
+
+`k` must be an integer from 1 to the number of observations. Exhaustive
+leave-k-out enumeration is limited to at most one million omission sets.
+
+## N-mixture models
+
+The package includes
+[`nmix_draws()`](https://ohkuboyusaku.github.io/poscosea/reference/nmix_draws.md),
+[`nmix_loglik()`](https://ohkuboyusaku.github.io/poscosea/reference/nmix_loglik.md),
+[`ijk_nmix()`](https://ohkuboyusaku.github.io/poscosea/reference/ijk_nmix.md),
+and
+[`ijk_bootstrap_2stage()`](https://ohkuboyusaku.github.io/poscosea/reference/ijk_bootstrap_2stage.md)
+for binomial N-mixture models. For full setup and examples, see
+[`vignette("nmix-twostage", package = "poscosea")`](https://ohkuboyusaku.github.io/poscosea/articles/nmix-twostage.md).
+
+## Documentation
+
+- [Function
+  reference](https://ohkuboyusaku.github.io/poscosea/reference/index.md)
+- [Getting
+  started](https://ohkuboyusaku.github.io/poscosea/articles/getting-started.md)
+- [Two-stage N-mixture
+  bootstrap](https://ohkuboyusaku.github.io/poscosea/articles/nmix-twostage.md)

@@ -1,6 +1,10 @@
-pandoc: 3.8.3
-pkgdown: 2.2.0
+pandoc: '3.13'
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   getting-started: getting-started.html
-last_built: 2026-06-11T00:46Z
+  nmix-twostage: nmix-twostage.html
+last_built: 2026-11-11T10:38Z
+urls:
+  reference: https://ohkuboyusaku.github.io/poscosea/reference
+  article: https://ohkuboyusaku.github.io/poscosea/articles
