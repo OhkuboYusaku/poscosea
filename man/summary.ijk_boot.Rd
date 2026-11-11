@@ -9,7 +9,7 @@
 \arguments{
 \item{object}{An object of class "ijk_boot".}
 
-\item{...}{Additional arguments passed to methods.}
+\item{...}{Currently unused.}
 }
 \value{
 A list containing:

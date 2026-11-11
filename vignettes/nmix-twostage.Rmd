@@ -1,0 +1,227 @@
+---
+title: "Two-Stage Bootstrap for N-Mixture Models"
+author: "Ph.D. Ohkubo Yusaku "
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Two-Stage Bootstrap for N-Mixture Models}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
+)
+```
+
+```{r setup}
+library(poscosea)
+```
+
+## Overview
+
+In a binomial N-mixture model, counts \(y_{ij}\) are collected at sites
+\(i = 1, \ldots, I\) on repeated visits \(j = 1, \ldots, J\):
+
+\[
+N_i \sim \mathrm{Poisson}(\lambda_i), \qquad
+y_{ij} \mid N_i \sim \mathrm{Binomial}(N_i, p_{ij}).
+\]
+
+The data are hierarchical, so a bootstrap should resample both levels.
+The **two-stage bootstrap** first resamples sites with replacement,
+\(u \sim \mathrm{Mult}(I; 1/I, \ldots, 1/I)\), and then resamples the
+observed visits within each selected copy of a site. Instead of refitting
+the model for every resample, `poscosea` approximates each replicate of a
+posterior mean from a single MCMC run:
+
+\[
+\theta^{(b)} \approx E[\theta]
+  + \sum_{i}(u_{bi} - 1)\, c_i
+  + \sum_{i,j}(v_{bij} - 1)\, e_{ij},
+\]
+
+where \(c_i\) and \(e_{ij}\) are posterior covariances between
+\(\theta\) and the site-level marginal log-likelihood and the visit-level
+log-likelihood, respectively.
+
+The workflow is
+
+1. `nmix_draws()` – pick \(\lambda\), \(p\) and \(N\) out of the MCMC output,
+2. `nmix_loglik()` – compute the site- and visit-level log-likelihoods,
+3. `ijk_nmix()` – compute the influence values for a quantity of interest,
+4. `ijk_bootstrap_2stage()` – generate the bootstrap replicates.
+
+## Example data
+
+We simulate data with unmodelled overdispersion in abundance, so that the
+fitted Poisson N-mixture model is misspecified.
+
+```{r}
+set.seed(1)
+I <- 60; J <- 3
+x  <- rnorm(I)                       # site covariate
+xp <- matrix(rnorm(I * J), I, J)     # visit covariate
+lambda_true <- exp(1.5 + 0.5 * x + rnorm(I, 0, 0.5))
+N_true <- rpois(I, lambda_true)
+y <- matrix(rbinom(I * J, rep(N_true, J), plogis(0.5 * xp)), I, J)
+y[c(3, 10, 25), 3] <- NA             # some missing visits
+```
+
+## Posterior draws
+
+In practice the parameter draws come from MCMC (see the last section).
+To keep this vignette self-contained, we use a Laplace normal approximation
+to the posterior of
+\((\alpha_\lambda, \beta_\lambda, \alpha_p, \beta_p)\), with
+independent weakly informative Normal priors specified below. These are
+illustrative posterior draws, not MCMC output. The fitted Poisson model omits
+the site-level abundance variation used to generate the data, so the resulting
+intervals should not be read as calibrated coverage results. We draw
+\(N_i\) from its conditional posterior. `nmix_loglik()` accepts a single
+draw when evaluating the marginal likelihood during optimization.
+
+```{r}
+prior_mean <- c(1.5, 0, 0, 0)
+prior_sd <- c(2, 1.5, 2, 2)
+
+nll <- function(par) {
+  lam <- matrix(exp(par[1] + par[2] * x), 1)
+  p   <- matrix(plogis(par[3] + par[4] * xp), 1)
+  log_lik <- sum(suppressWarnings(nmix_loglik(y, lam, p)$site))
+  log_prior <- sum(dnorm(par, mean = prior_mean, sd = prior_sd, log = TRUE))
+  val <- -log_lik - log_prior
+  if (is.finite(val)) val else 1e10
+}
+opt <- optim(c(1, 0, 0, 0), nll, method = "BFGS", hessian = TRUE)
+if (opt$convergence != 0) stop("Posterior mode optimization did not converge.")
+post_cov <- solve(opt$hessian)
+
+S  <- 2000
+th <- t(opt$par + t(chol(post_cov)) %*% matrix(rnorm(4 * S), 4))
+colnames(th) <- c("alpha.lam", "beta.lam", "alpha.p", "beta.p")
+
+lambda <- exp(th[, 1] + outer(th[, 2], x))                   # S x I
+p      <- plogis(th[, 3] + outer(th[, 4], as.vector(xp)))    # S x IJ
+
+## N_i | y_i, theta on the grid max(y_i), ..., max(y_i) + 100
+draw_N <- function(y, lambda, p, Nmax_extra = 100) {
+  S <- nrow(lambda); I <- nrow(y)
+  N <- matrix(NA_integer_, S, I)
+  for (i in seq_len(I)) {
+    obs <- which(!is.na(y[i, ]))
+    Ns  <- max(y[i, obs]) + 0:Nmax_extra
+    Nr  <- matrix(Ns, S, length(Ns), byrow = TRUE)
+    lt  <- dpois(Nr, lambda[, i], log = TRUE)
+    for (j in obs) lt <- lt + dbinom(y[i, j], Nr, p[, i + (j - 1) * I], log = TRUE)
+    cw <- t(apply(exp(lt - apply(lt, 1, max)), 1, cumsum))
+    N[, i] <- Ns[rowSums(cw < runif(S) * cw[, ncol(cw)]) + 1]
+  }
+  N
+}
+N <- draw_N(y, lambda, p)
+```
+
+## Log-likelihoods and influence values
+
+`nmix_loglik()` returns the site-level marginal log-likelihood and two
+versions of the visit-level log-likelihood: `obs_rb` (for quantities that
+depend only on the parameters) and `obs_joint` (for quantities involving
+the latent abundance \(N\); requires `N`).
+
+```{r}
+ll <- nmix_loglik(y, lambda, p, N = N)
+str(ll[c("site", "obs_rb", "obs_joint")])
+```
+
+We draw the bootstrap weights once and share them across quantities.
+
+```{r}
+w <- nmix_weights(B = 5000, obs_mask = ll$obs_mask)
+```
+
+### A regression coefficient
+
+```{r}
+fit_beta <- ijk_nmix(th[, "beta.lam"], ll)
+boot_two  <- ijk_bootstrap_2stage(fit_beta, type = "twostage", weights = w)
+boot_site <- ijk_bootstrap_2stage(fit_beta, type = "site", weights = w)
+boot_two
+```
+
+```{r}
+rbind(
+  posterior = c(estimate = mean(th[, "beta.lam"]), se = sd(th[, "beta.lam"]),
+                setNames(quantile(th[, "beta.lam"], c(0.025, 0.975)), c("lower", "upper"))),
+  site      = unlist(summary(boot_site)[c("estimate", "se", "lower", "upper")]),
+  twostage  = unlist(summary(boot_two)[c("estimate", "se", "lower", "upper")])
+)
+```
+
+### The total abundance of the surveyed sites
+
+\(\sum_i N_i\) depends on the latent abundance, so we use `obs = "joint"`.
+The likelihood weights only capture the variation through the parameters;
+`nmix_latent_resid()` adds the prediction error of \(N\).
+
+```{r}
+Ntot <- rowSums(N)
+fit_N <- ijk_nmix(Ntot, ll, obs = "joint")
+summary(ijk_bootstrap_2stage(fit_N, weights = w,
+                             latent_resid = nmix_latent_resid(N, ll)))
+quantile(Ntot, c(0.025, 0.975))      # posterior interval
+sum(N_true)                          # realised value
+```
+
+### Several quantities at once: a regression curve
+
+A matrix `theta` (draws in rows, quantities in columns) gives replicates for
+all quantities with the same resamples.
+
+```{r}
+xg <- seq(-2, 2, length.out = 50)
+lam_curve <- exp(th[, "alpha.lam"] + outer(th[, "beta.lam"], xg))   # S x 50
+fit_curve <- ijk_nmix(lam_curve, ll)
+sc <- summary(ijk_bootstrap_2stage(fit_curve, weights = w))
+pq <- apply(lam_curve, 2, quantile, c(0.025, 0.975))
+
+plot(xg, sc$estimate, type = "n", ylim = range(sc$lower, sc$upper, pq),
+     xlab = "Site covariate", ylab = expression(lambda))
+polygon(c(xg, rev(xg)), c(sc$lower, rev(sc$upper)), col = "grey80", border = NA)
+polygon(c(xg, rev(xg)), c(pq[1, ], rev(pq[2, ])), col = "grey55", border = NA)
+lines(xg, sc$estimate, lwd = 2)
+legend("topleft", c("Two-stage bootstrap 95% CI", "Posterior 95% CrI"),
+       fill = c("grey80", "grey55"), border = NA, bty = "n")
+```
+
+### Leave-one-site-out
+
+The site-level influence values can be passed to `ijk_lko()`.
+
+```{r}
+loo <- ijk_lko(fit_beta$estimate, fit_beta$influence_site, k = 1)
+plot(loo)
+```
+
+## Using MCMC output
+
+With JAGS (here through `runjags`), monitor \(\lambda\), \(p\) and \(N\)
+and pass the draws to `nmix_draws()`. Columns are matched by name
+(`lam[i]`, `p[i,j]`, `N[i]`), so their order in the output does not matter.
+
+```{r, eval = FALSE}
+library(runjags)
+fit <- run.jags("Nmix.txt", monitor = c("beta", "lam", "p", "N"),
+                data = jags_data, n.chains = 3)
+dr <- nmix_draws(as.mcmc.list(fit), I = nrow(y), J = ncol(y),
+                 lambda = "lam", p = "p", N = "N")
+ll <- nmix_loglik(y, dr$lambda, dr$p, N = dr$N)
+```
+
+If the detection model contains random effects, the monitored \(p_{ij}\)
+are conditional on them and `nmix_loglik()` returns the likelihood
+conditional on those random effects.

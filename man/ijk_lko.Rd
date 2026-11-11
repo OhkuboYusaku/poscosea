@@ -7,14 +7,23 @@
 ijk_lko(estimate, influence, k = 1)
 }
 \arguments{
-\item{estimate}{Scalar estimate.}
+\item{estimate}{Finite numeric scalar giving the original estimate.}
 
-\item{influence}{Numeric vector of influence values.}
+\item{influence}{Non-empty finite numeric vector of influence values.}
 
-\item{k}{Number of observations removed.}
+\item{k}{Finite integer number of observations removed, satisfying
+\verb{1 <= k <= length(influence)}. Exhaustive enumeration is limited to at most
+1e6 omission sets.}
 }
 \value{
-Numeric vector of leave-k-out estimates.
+An object of class \code{ijk_lko} containing:
+\describe{
+\item{estimate}{Original estimate.}
+\item{lko_estimates}{Approximate estimates for all omitted sets.}
+\item{delta}{Change from the original estimate for each omitted set.}
+\item{omitted}{List of omitted observation indices for each estimate.}
+\item{k}{Number of observations omitted in each set.}
+}
 }
 \description{
 Approximates leave-k-out cross-validation estimates

@@ -1,29 +1,32 @@
 Package: poscosea
 Title: A Computationally Efficient Sensitivity Analysis for MCMC Output
-Version: 0.0.1
-Authors@R:
+Version: 0.0.2
+Authors@R: 
     person(
       "Yusaku",
       "Ohkubo",
       email = "ohkubo.yusaku1989@gmail.com",
       role = c("aut", "cre")
     )
-Description:
+Description: 
     Bootstrap and leave-k-out cross-validation
     using infinitesimal jackknife approximations
-    from MCMC samples.
+    from MCMC samples. For binomial N-mixture models,
+    site- and visit-level log-likelihoods and a two-stage
+    (site and visit) bootstrap approximation are provided.
 License: GPL-3
 Encoding: UTF-8
-LazyData: true
-Imports:
-    stats
-Suggests:
-    testthat (>= 3.0.0),
-    knitr,
-    rmarkdown
+Imports: graphics, stats, utils
+Suggests: testthat (>= 3.0.0), knitr, rmarkdown
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://github.com/OhkuboYusaku/poscosea
+URL: https://ohkuboyusaku.github.io/poscosea,
+        https://github.com/OhkuboYusaku/poscosea
 BugReports: https://github.com/OhkuboYusaku/poscosea/issues
+Config/roxygen2/version: 8.1.1
+NeedsCompilation: no
+Packaged: 2026-11-11 10:48:28 UTC; yo
+Author: Yusaku Ohkubo [aut, cre]
+Maintainer: Yusaku Ohkubo <ohkubo.yusaku1989@gmail.com>
+RoxygenNote: 7.3.3

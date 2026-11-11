@@ -7,10 +7,12 @@
 ijk(theta, loglik)
 }
 \arguments{
-\item{theta}{Numeric vector of posterior draws of a scalar quantity.}
+\item{theta}{Finite numeric vector of posterior draws of a scalar
+quantity, with at least two draws.}
 
-\item{loglik}{Numeric matrix of log-likelihood draws.
-Rows correspond to posterior draws and columns correspond to observations.}
+\item{loglik}{Finite numeric matrix of log-likelihood draws. Rows correspond
+to posterior draws and columns correspond to observations; it must have at
+least one column and one row per value in \code{theta}.}
 }
 \value{
 An object of class \code{"ijk"} containing:

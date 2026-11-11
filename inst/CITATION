@@ -1,0 +1,19 @@
+citHeader("Please cite the package and its associated article as follows:")
+
+bibentry(
+  bibtype = "Manual",
+  title = "poscosea: A Computationally Efficient Sensitivity Analysis for MCMC Output",
+  author = person("Yusaku", "Ohkubo"),
+  year = "2026",
+  note = "R package version 0.0.2",
+  url = "https://ohkuboyusaku.github.io/poscosea"
+)
+
+bibentry(
+  bibtype = "Article",
+  key = "ohkubo2026poscosea",
+  title = "$\\{$poscosea$\\}$: A Computationally Efficient Sensitivity Analysis for Bayesian Models using the posterior covariance representation",
+  author = c(person("Yusaku", "Ohkubo"), person("Yukito", "Iba")),
+  journal = "arXiv preprint arXiv:2608.25426",
+  year = "2026"
+)

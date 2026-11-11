@@ -1,131 +1,69 @@
+# poscosea
 
-## Overview
+`poscosea` provides infinitesimal jackknife (IJK) approximations for
+sensitivity analysis of posterior summaries. Given aligned posterior draws
+of a quantity of interest and pointwise log-likelihood values, it computes
+observation-level influence values for bootstrap and leave-k-out analyses.
 
-`poscosea` provides fast sensitivity analysis for posterior summaries
-obtained from MCMC output. The package implements infinitesimal jackknife (IJK) approximations based on
-
-* posterior draws of a scalar quantity of interest,
-* corresponding log-likelihood draws.
-
-These influence values can then be used for
-
-* nonparametric bootstrap approximations,
-* leave-k-out cross-validation,
-* sensitivity analysis without refitting the original Bayesian model.
+For binomial N-mixture models, the package also provides site- and
+visit-level likelihood components and a two-stage bootstrap approximation.
+See the [N-mixture vignette](articles/nmix-twostage.html) for a worked example.
 
 ## Installation
 
-This package is available on GitHub.
+Install the development version from GitHub:
 
-You can install it using `remotes`:
-
-```{r eval=FALSE}
+```r
 install.packages("remotes")
 remotes::install_github("OhkuboYusaku/poscosea")
 ```
-Or using devtools:
 
-```{r eval=FALSE}
-install.packages("devtools")
-devtools::install_github("OhkuboYusaku/poscosea")
-```
-## Input Format
+## Quick start
 
-The main function requires
+This example uses the model `y_i | theta ~ Normal(theta, 1)` with a flat prior
+on `theta`. It draws from the resulting analytic posterior and computes the
+pointwise log-likelihood at each corresponding draw.
 
-* a numeric vector of posterior draws (`theta`)
-* a log-likelihood matrix (`loglik`)
-
-Rows of `loglik` correspond to MCMC draws and columns correspond to observations.
-
-```{r}
+```r
+set.seed(123)
 n_obs <- 6
-y <- rnorm(n_obs, sd = 1) # data
-# --- Introducing a few influential observations ---
-signal_idx <- c(2)
-y[signal_idx]<- y[signal_idx] + 3
-n_draws <- 30
-theta <- rnorm(n_draws)
-# log-likelihood matrix
+y <- rnorm(n_obs, sd = 1)
+signal_idx <- c(2, 5)
+y[signal_idx] <- y[signal_idx] + 3
+
+n_draws <- 2000
+theta <- rnorm(n_draws, mean = mean(y), sd = 1 / sqrt(n_obs))
 loglik <- matrix(0, n_draws, n_obs)
-for (i in seq_len(n_obs)){ 
-  # likelihood: y_i ~ N(theta + beta_i, sigma^2)
+for (i in seq_len(n_obs)) {
   loglik[, i] <- dnorm(y[i], mean = theta, sd = 1, log = TRUE)
 }
-```
 
-## Constructing an IJK Object
-
-The `ijk()` function computes the posterior mean and observation-wise
-influence values.
-
-```{r}
 fit <- ijk(theta, loglik)
-
-fit
-```
-
-The estimated posterior mean is stored in
-
-```{r}
 fit$estimate
-```
-
-The observation-wise influence values are stored in
-
-```{r}
 head(fit$influence)
 ```
 
-## Bootstrap Approximation
+Generate bootstrap replicates and approximate leave-one-out estimates:
 
-Bootstrap replicates can be generated from the influence values.
+```r
+boot <- ijk_bootstrap(fit$estimate, fit$influence, B = 500)
+summary(boot)
 
-```{r}
-boot <- ijk_bootstrap(
-  estimate = fit$estimate,
-  influence = fit$influence,
-  B = 500
-)
-
-```
-
-Summary statistic can be obtained from the bootstrap distribution.
-
-```{r}
-print(boot)
-```
-
-## Leave-One-Out Approximation
-
-Leave-one-out approximations are obtained by setting `k = 1`.
-
-```{r}
-loo <- ijk_lko(
-  estimate = fit$estimate,
-  influence = fit$influence,
-  k = 1
-)
-```
-
-The influence structure can be visualized using plot(). For leave-one-out (k = 1), each point represents the change in the estimate when a single observation is removed. Large absolute values indicate highly influential observations.
-
-```{r}
+loo <- ijk_lko(fit$estimate, fit$influence, k = 1)
 plot(loo)
 ```
 
-# Leave-k-Out Approximation
+`k` must be an integer from 1 to the number of observations. Exhaustive
+leave-k-out enumeration is limited to at most one million omission sets.
 
-More generally, any value of `k` can be used.
+## N-mixture models
 
-```{r}
-lko <- ijk_lko(
-  estimate = fit$estimate,
-  influence = fit$influence,
-  k = 2
-)
-```
+The package includes `nmix_draws()`, `nmix_loglik()`, `ijk_nmix()`, and
+`ijk_bootstrap_2stage()` for binomial N-mixture models. For full setup and
+examples, see `vignette("nmix-twostage", package = "poscosea")`.
 
-Notes on plotting
+## Documentation
 
-The current implementation of plot.ijk_lko() is available only for k = 1. For k > 1, the object still contains all leave-k-out estimates in lko$lko_estimates, which can be summarized using summary() or manually inspected.
+- [Function reference](reference/index.html)
+- [Getting started](articles/getting-started.html)
+- [Two-stage N-mixture bootstrap](articles/nmix-twostage.html)

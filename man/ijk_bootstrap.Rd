@@ -7,11 +7,11 @@
 ijk_bootstrap(estimate, influence, B = 1000)
 }
 \arguments{
-\item{estimate}{Numeric scalar giving the original estimate.}
+\item{estimate}{Finite numeric scalar giving the original estimate.}
 
-\item{influence}{Numeric vector of influence values.}
+\item{influence}{Non-empty finite numeric vector of influence values.}
 
-\item{B}{Positive integer giving the number of bootstrap replicates.}
+\item{B}{Integer of at least 2 giving the number of bootstrap replicates.}
 }
 \value{
 An object of class "ijk_boot" containing:

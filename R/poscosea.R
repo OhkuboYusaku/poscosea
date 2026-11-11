@@ -7,9 +7,11 @@
 #' for bootstrap and leave-k-out cross-validation approximations without
 #' refitting the original model.
 #'
-#' @param theta Numeric vector of posterior draws of a scalar quantity.
-#' @param loglik Numeric matrix of log-likelihood draws.
-#' Rows correspond to posterior draws and columns correspond to observations.
+#' @param theta Finite numeric vector of posterior draws of a scalar
+#'   quantity, with at least two draws.
+#' @param loglik Finite numeric matrix of log-likelihood draws. Rows correspond
+#'   to posterior draws and columns correspond to observations; it must have at
+#'   least one column and one row per value in `theta`.
 #'
 #' @return
 #' An object of class `"ijk"` containing:
@@ -50,28 +52,27 @@ ijk <- function(theta, loglik) {
 #' Internal utility for validating inputs supplied to
 #' the main ijk function.
 #'
-#' @param theta Numeric vector.
-#' @param loglik Numeric matrix.
+#' @param theta Finite numeric vector with at least two values.
+#' @param loglik Finite numeric matrix with at least one column and one row
+#'   per value in `theta`.
 #'
 #' @return Invisibly returns TRUE.
 #'
 #' @keywords internal
 check_inputs <- function(theta, loglik) {
-  if (!is.numeric(theta))
-    stop("'theta' must be numeric.", call. = FALSE)
-  if (anyNA(theta))
-    stop("'theta' contains missing values.", call. = FALSE)
-  if (!is.matrix(loglik))
-    stop("'loglik' must be a matrix.", call. = FALSE)
-  if (!is.numeric(loglik))
-    stop("'loglik' must be numeric.", call. = FALSE)
-  if (anyNA(loglik))
-    stop("'loglik' contains missing values.", call. = FALSE)
+  if (!is.numeric(theta) || !is.null(dim(theta)) || length(theta) < 2L)
+    stop("'theta' must be a numeric vector with at least two draws.",
+         call. = FALSE)
+  if (any(!is.finite(theta)))
+    stop("'theta' must contain only finite values.", call. = FALSE)
+  if (!is.matrix(loglik) || !is.numeric(loglik))
+    stop("'loglik' must be a numeric matrix.", call. = FALSE)
+  if (ncol(loglik) < 1L)
+    stop("'loglik' must contain at least one observation.", call. = FALSE)
+  if (any(!is.finite(loglik)))
+    stop("'loglik' must contain only finite values.", call. = FALSE)
   if (length(theta) != nrow(loglik))
-    stop(
-      "length(theta) must equal nrow(loglik).",
-      call. = FALSE
-    )
+    stop("length(theta) must equal nrow(loglik).", call. = FALSE)
   invisible(TRUE)
 }
 
@@ -81,8 +82,9 @@ check_inputs <- function(theta, loglik) {
 #' Computes observation-wise influence values used in the
 #' infinitesimal jackknife approximation.
 #'
-#' @param theta Numeric vector of posterior draws.
-#' @param loglik Numeric matrix of log-likelihood draws.
+#' @param theta Finite numeric vector of at least two posterior draws.
+#' @param loglik Finite numeric matrix with one row per draw in `theta` and
+#'   at least one observation column.
 #'
 #' @return
 #' A numeric vector of influence values with one element per observation.
@@ -105,9 +107,9 @@ compute_if <- function(theta, loglik) {
 #' weights from a multinomial distribution and applying the linear
 #' influence-function approximation.
 #'
-#' @param estimate Numeric scalar giving the original estimate.
-#' @param influence Numeric vector of influence values.
-#' @param B Positive integer giving the number of bootstrap replicates.
+#' @param estimate Finite numeric scalar giving the original estimate.
+#' @param influence Non-empty finite numeric vector of influence values.
+#' @param B Integer of at least 2 giving the number of bootstrap replicates.
 #'
 #' @return
 #' An object of class "ijk_boot" containing:
@@ -138,23 +140,18 @@ ijk_bootstrap <- function(
     B = 1000
 ) {
 
-  if (!is.numeric(estimate) || length(estimate) != 1)
-    stop(
-      "'estimate' must be a numeric scalar.",
-      call. = FALSE
-    )
+  if (!is.numeric(estimate) || !is.null(dim(estimate)) ||
+      length(estimate) != 1L || !is.finite(estimate))
+    stop("'estimate' must be a finite numeric scalar.", call. = FALSE)
 
-  if (!is.numeric(influence))
-    stop(
-      "'influence' must be numeric.",
-      call. = FALSE
-    )
+  if (!is.numeric(influence) || !is.null(dim(influence)) ||
+      length(influence) < 1L || any(!is.finite(influence)))
+    stop("'influence' must be a non-empty finite numeric vector.",
+         call. = FALSE)
 
-  if (!is.numeric(B) || length(B) != 1 || B < 1)
-    stop(
-      "'B' must be a positive integer.",
-      call. = FALSE
-    )
+  if (!is.numeric(B) || !is.null(dim(B)) || length(B) != 1L ||
+      !is.finite(B) || B < 2 || B != floor(B))
+    stop("'B' must be an integer of at least 2.", call. = FALSE)
 
   R <- length(influence)
 
@@ -186,7 +183,7 @@ ijk_bootstrap <- function(
 #'
 #' @param x An object of class "ijk_boot".
 #' @param digits Number of digits to display.
-#' @param ... Additional arguments passed to methods.
+#' @param ... Currently unused.
 #'
 #' @return
 #' The input object, invisibly.
@@ -256,7 +253,7 @@ print.ijk_boot <- function(
 #' Computes standard bootstrap summary statistics.
 #'
 #' @param object An object of class "ijk_boot".
-#' @param ... Additional arguments passed to methods.
+#' @param ... Currently unused.
 #'
 #' @return
 #' A list containing:
@@ -299,12 +296,21 @@ summary.ijk_boot <- function(
 #' Approximates leave-k-out cross-validation estimates
 #' using infinitesimal jackknife influence values.
 #'
-#' @param estimate Scalar estimate.
-#' @param influence Numeric vector of influence values.
-#' @param k Number of observations removed.
+#' @param estimate Finite numeric scalar giving the original estimate.
+#' @param influence Non-empty finite numeric vector of influence values.
+#' @param k Finite integer number of observations removed, satisfying
+#'   `1 <= k <= length(influence)`. Exhaustive enumeration is limited to at most
+#'   1e6 omission sets.
 #'
 #' @return
-#' Numeric vector of leave-k-out estimates.
+#' An object of class `ijk_lko` containing:
+#' \describe{
+#'   \item{estimate}{Original estimate.}
+#'   \item{lko_estimates}{Approximate estimates for all omitted sets.}
+#'   \item{delta}{Change from the original estimate for each omitted set.}
+#'   \item{omitted}{List of omitted observation indices for each estimate.}
+#'   \item{k}{Number of observations omitted in each set.}
+#' }
 #'
 #' @examples
 #' influence <- rnorm(20)
@@ -316,14 +322,18 @@ ijk_lko <- function(
     influence,
     k = 1
 ) {
-  if (!is.numeric(estimate) || length(estimate) != 1)
-    stop("'estimate' must be a numeric scalar.",
-         call. = FALSE)
-  if (!is.numeric(influence))
-    stop("'influence' must be numeric.",
+  if (!is.numeric(estimate) || !is.null(dim(estimate)) ||
+      length(estimate) != 1L || !is.finite(estimate))
+    stop("'estimate' must be a finite numeric scalar.", call. = FALSE)
+  if (!is.numeric(influence) || !is.null(dim(influence)) ||
+      length(influence) < 1L || any(!is.finite(influence)))
+    stop("'influence' must be a non-empty finite numeric vector.",
          call. = FALSE)
   R <- length(influence)
 
+  if (!is.numeric(k) || !is.null(dim(k)) || length(k) != 1L ||
+      !is.finite(k) || k != floor(k))
+    stop("'k' must be a finite integer.", call. = FALSE)
   if (k < 1 || k > R)
     stop(
       "'k' must satisfy 1 <= k <= length(influence).",
@@ -384,8 +394,8 @@ ijk_lko <- function(
 #' can be labelled.
 #'
 #' @param x An object of class \code{"ijk_lko"}.
-#' @param label Integer giving the number of most influential
-#'   observations to label. Default is \code{5}.
+#' @param label Integer from 0 to the number of observations, giving the
+#'   number of most influential observations to label. Default is \code{5}.
 #' @param pch Plotting character.
 #' @param ... Additional graphical parameters passed to
 #'   \code{\link[graphics]{plot}}.
@@ -405,17 +415,7 @@ ijk_lko <- function(
 #'   k = 1
 #' )
 #'
-#' summary(lko1)
 #' plot(lko1)
-#'
-#' # Leave-two-out (k = 2)
-#' lko2 <- ijk_lko(
-#'   estimate = 0,
-#'   influence = influence,
-#'   k = 2
-#' )
-#'
-#' summary(lko2)
 #'
 #' @export
 #' @method plot ijk_lko
@@ -425,6 +425,10 @@ plot.ijk_lko <- function(
     pch = 19,
     ...
 ) {
+  if (!inherits(x, "ijk_lko") || !is.numeric(x$k) || length(x$k) != 1L ||
+      !is.finite(x$k) || !is.numeric(x$delta) || length(x$delta) < 1L ||
+      any(!is.finite(x$delta)))
+    stop("'x' must be a valid object returned by ijk_lko().", call. = FALSE)
   if (x$k != 1) {
     stop(
       "plot.ijk_lko() is currently implemented only for k = 1.",
@@ -433,6 +437,10 @@ plot.ijk_lko <- function(
   }
   delta <- x$delta
   n <- length(delta)
+  if (!is.numeric(label) || !is.null(dim(label)) || length(label) != 1L ||
+      !is.finite(label) || label < 0 || label > n || label != floor(label))
+    stop("'label' must be an integer between 0 and length(x$delta).",
+         call. = FALSE)
 
   graphics::plot(
     seq_len(n),

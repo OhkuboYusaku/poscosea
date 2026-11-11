@@ -7,9 +7,10 @@
 compute_if(theta, loglik)
 }
 \arguments{
-\item{theta}{Numeric vector of posterior draws.}
+\item{theta}{Finite numeric vector of at least two posterior draws.}
 
-\item{loglik}{Numeric matrix of log-likelihood draws.}
+\item{loglik}{Finite numeric matrix with one row per draw in \code{theta} and
+at least one observation column.}
 }
 \value{
 A numeric vector of influence values with one element per observation.

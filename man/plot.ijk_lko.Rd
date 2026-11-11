@@ -9,8 +9,8 @@
 \arguments{
 \item{x}{An object of class \code{"ijk_lko"}.}
 
-\item{label}{Integer giving the number of most influential
-observations to label. Default is \code{5}.}
+\item{label}{Integer from 0 to the number of observations, giving the
+number of most influential observations to label. Default is \code{5}.}
 
 \item{pch}{Plotting character.}
 
@@ -48,16 +48,6 @@ lko1 <- ijk_lko(
   k = 1
 )
 
-summary(lko1)
 plot(lko1)
-
-# Leave-two-out (k = 2)
-lko2 <- ijk_lko(
-  estimate = 0,
-  influence = influence,
-  k = 2
-)
-
-summary(lko2)
 
 }

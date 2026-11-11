@@ -7,9 +7,10 @@
 check_inputs(theta, loglik)
 }
 \arguments{
-\item{theta}{Numeric vector.}
+\item{theta}{Finite numeric vector with at least two values.}
 
-\item{loglik}{Numeric matrix.}
+\item{loglik}{Finite numeric matrix with at least one column and one row
+per value in \code{theta}.}
 }
 \value{
 Invisibly returns TRUE.

@@ -11,7 +11,7 @@
 
 \item{digits}{Number of digits to display.}
 
-\item{...}{Additional arguments passed to methods.}
+\item{...}{Currently unused.}
 }
 \value{
 The input object, invisibly.
