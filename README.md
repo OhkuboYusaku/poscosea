@@ -7,7 +7,7 @@ observation-level influence values for bootstrap and leave-k-out analyses.
 
 For binomial N-mixture models, the package also provides site- and
 visit-level likelihood components and a two-stage bootstrap approximation.
-See the [N-mixture vignette](articles/nmix-twostage.html) for a worked example.
+See the [N-mixture vignette](docs/articles/nmix-twostage.html) for a worked example.
 
 ## Installation
 
@@ -64,6 +64,6 @@ examples, see `vignette("nmix-twostage", package = "poscosea")`.
 
 ## Documentation
 
-- [Function reference](reference/index.html)
-- [Getting started](articles/getting-started.html)
-- [Two-stage N-mixture bootstrap](articles/nmix-twostage.html)
+- [Function reference](docs/reference/index.html)
+- [Getting started](docs/articles/getting-started.html)
+- [Two-stage N-mixture bootstrap](docs/articles/nmix-twostage.html)
