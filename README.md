@@ -3,11 +3,12 @@
 `poscosea` provides infinitesimal jackknife (IJK) approximations for
 sensitivity analysis of posterior summaries. Given aligned posterior draws
 of a quantity of interest and pointwise log-likelihood values, it computes
-observation-level influence values for bootstrap and leave-k-out analyses.
+observation-level influence values for bootstrap and leave-k-out analyses. See [Getting started](https://ohkuboyusaku.github.io/poscosea/articles/getting-started.html) for details.
+
 
 For binomial N-mixture models, the package also provides site- and
 visit-level likelihood components and a two-stage bootstrap approximation.
-See the [N-mixture vignette](docs/articles/nmix-twostage.html) for a worked example.
+See the [N-mixture vignette](https://ohkuboyusaku.github.io/poscosea/articles/nmix-twostage.html) for a worked example.
 
 ## Installation
 
@@ -63,7 +64,6 @@ The package includes `nmix_draws()`, `nmix_loglik()`, `ijk_nmix()`, and
 examples, see `vignette("nmix-twostage", package = "poscosea")`.
 
 ## Documentation
-
-- [Function reference](docs/reference/index.html)
-- [Getting started](docs/articles/getting-started.html)
-- [Two-stage N-mixture bootstrap](docs/articles/nmix-twostage.html)
+- [Getting started](https://ohkuboyusaku.github.io/poscosea/articles/getting-started.html)
+- [Function reference](https://ohkuboyusaku.github.io/poscosea/reference/index.html)
+- [Two-stage N-mixture bootstrap](https://ohkuboyusaku.github.io/poscosea/articles/nmix-twostage.html)
